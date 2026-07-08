@@ -18,7 +18,7 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Cardinal CRM Admin",
+  title: "Cardinal Admin",
   description: "CRM dashboard for Cardinal operations",
   icons: {
     icon: "/icon.png",
