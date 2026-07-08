@@ -9,6 +9,7 @@ export interface CompanyProfile {
   businessLegalName: string;
   currentStep: number;
   kycStatus: string;
+  status?: string;
   kycAttempts?: number;
   kycRejectionReason?: string | null;
   registrationNumber: string;
@@ -227,6 +228,20 @@ export interface OnboardingHistoryResponse {
   data: OnboardingHistoryItem[];
 }
 
+export interface KycDetails {
+  fullName: string | null;
+  dateOfBirth: string | null;
+  issuingState: string | null;
+  portraitImageUrl: string | null;
+}
+
+export interface KycDetailsResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: KycDetails;
+}
+
 export interface PersonalApplication {
   id: string;
   phoneNumber: string;
@@ -237,6 +252,7 @@ export interface PersonalApplication {
   homeAddressId: string;
   occupation: string;
   kycStatus: string;
+  status?: string;
   kycAttempts?: number;
   kycRejectionReason?: string | null;
   currentStep: number;
@@ -350,6 +366,16 @@ export const applicationsApi = baseApi.injectEndpoints({
       transformResponse: (response: OnboardingHistoryResponse) => response.data,
       providesTags: (result, error, id) => [{ type: "CompanyProfiles" as const, id: `${id}-onboarding-history` }],
     }),
+    getPersonalOnboardingHistory: builder.query<OnboardingHistoryItem[], string>({
+      query: (id) => `/admin/personal-application/${id}/onboarding-history`,
+      transformResponse: (response: OnboardingHistoryResponse) => response.data,
+      providesTags: (result, error, id) => [{ type: "PersonalApplications" as const, id: `${id}-onboarding-history` }],
+    }),
+    getKycDetails: builder.query<KycDetails, string>({
+      query: (personId) => `/admin/kyc-details/${personId}`,
+      transformResponse: (response: KycDetailsResponse) => response.data,
+      providesTags: (result, error, personId) => [{ type: "PersonalApplications" as const, id: `${personId}-kyc-details` }],
+    }),
     deleteAssociatedPerson: builder.mutation<
       { success: boolean; message: string },
       { companyProfileId: string; personId: string; applicationId: string; role: string }
@@ -364,6 +390,34 @@ export const applicationsApi = baseApi.injectEndpoints({
         { type: "CompanyProfiles" as const, id: `${companyProfileId}-associated-persons` },
       ],
     }),
+    updatePersonalApplicationStatus: builder.mutation<
+      { success: boolean; message: string },
+      { id: string; status: "PENDING" | "INREVIEW" | "APPROVED" | "REJECTED" }
+    >({
+      query: ({ id, status }) => ({
+        url: `/admin/personal-application/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "PersonalApplications" as const, id },
+        { type: "PersonalApplications" as const, id: "LIST" },
+      ],
+    }),
+    updateCompanyProfileStatus: builder.mutation<
+      { success: boolean; message: string },
+      { id: string; status: "PENDING" | "INREVIEW" | "APPROVED" | "REJECTED" }
+    >({
+      query: ({ id, status }) => ({
+        url: `/admin/company-profile/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "CompanyProfiles" as const, id },
+        { type: "CompanyProfiles" as const, id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -374,5 +428,9 @@ export const {
   useGetPersonalApplicationQuery,
   useGetAssociatedPersonsQuery,
   useGetCompanyOnboardingHistoryQuery,
+  useGetPersonalOnboardingHistoryQuery,
+  useGetKycDetailsQuery,
   useDeleteAssociatedPersonMutation,
+  useUpdatePersonalApplicationStatusMutation,
+  useUpdateCompanyProfileStatusMutation,
 } = applicationsApi;

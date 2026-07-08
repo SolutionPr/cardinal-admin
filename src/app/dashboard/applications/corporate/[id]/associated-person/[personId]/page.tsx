@@ -19,7 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { useGetAssociatedPersonsQuery, useDeleteAssociatedPersonMutation } from "@/store/api/applicationsApi";
+import { useGetAssociatedPersonsQuery, useDeleteAssociatedPersonMutation, useGetKycDetailsQuery } from "@/store/api/applicationsApi";
 import { getApiErrorMessage } from "@/lib/api";
 
 interface PageProps {
@@ -33,6 +33,7 @@ export default function AssociatedPersonDetailPage({ params }: PageProps) {
   // Fetch all associated persons for the company profile
   const { data: assocPersonsData, isLoading, error } = useGetAssociatedPersonsQuery(id);
   const [deletePerson, { isLoading: isDeleting }] = useDeleteAssociatedPersonMutation();
+  const { data: kycDetails, isLoading: isKycLoading } = useGetKycDetailsQuery(personId);
 
   // Find the specific associated person matching personId in any of the arrays
   const person = (() => {
@@ -179,19 +180,6 @@ export default function AssociatedPersonDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-
-        {/* KYC Status Badge */}
-        <div>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider",
-              getStatusClass(person.kycStatus)
-            )}
-          >
-            {getKycIcon(person.kycStatus)}
-            {formatKycStatus(person.kycStatus)}
-          </span>
-        </div>
       </div>
 
       {/* Profile Details Grid */}
@@ -313,6 +301,79 @@ export default function AssociatedPersonDetailPage({ params }: PageProps) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* KYC Verification Details Card */}
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-white/5 pb-3">
+              <h2 className="text-sm font-black text-gray-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                <ShieldCheck className="size-4 text-green-500" />
+                <span>KYC Verification Details</span>
+              </h2>
+              <span className={cn(
+                "text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider",
+                getStatusClass(person.kycStatus)
+              )}>
+                {formatKycStatus(person.kycStatus)}
+              </span>
+            </div>
+
+            {isKycLoading ? (
+              <div className="py-4 text-center">
+                <Loader2 className="size-5 animate-spin text-[#E52629] mx-auto" />
+              </div>
+            ) : !kycDetails || !kycDetails.fullName ? (
+              <div className="py-6 text-center space-y-2">
+                <ShieldQuestion className="size-8 text-amber-500 mx-auto animate-pulse" />
+                <p className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  KYC Verification Pending
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                  This person has not completed the identity verification process yet.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                {kycDetails.portraitImageUrl && (
+                  <div className="relative size-24 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shrink-0 bg-gray-50 dark:bg-white/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={kycDetails.portraitImageUrl}
+                      alt="KYC Portrait"
+                      className="size-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 w-full space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Verified Full Name</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                        {kycDetails.fullName || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Date of Birth</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                        {kycDetails.dateOfBirth
+                          ? new Date(kycDetails.dateOfBirth).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Issuing State</span>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white mt-0.5 font-mono uppercase bg-gray-50 dark:bg-white/5 px-2 py-1 rounded inline-block">
+                        {kycDetails.issuingState || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

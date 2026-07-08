@@ -24,9 +24,10 @@ import {
   Calendar,
   CheckCircle,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { useGetCompanyProfileQuery, useGetAssociatedPersonsQuery, useGetCompanyOnboardingHistoryQuery } from "@/store/api/applicationsApi";
+import { useGetCompanyProfileQuery, useGetAssociatedPersonsQuery, useGetCompanyOnboardingHistoryQuery, useUpdateCompanyProfileStatusMutation } from "@/store/api/applicationsApi";
 import { getApiErrorMessage } from "@/lib/api";
 
 interface PageProps {
@@ -72,6 +73,17 @@ export default function CorporateDetailPage({ params }: PageProps) {
   const { data: detailedApp, isLoading, error } = useGetCompanyProfileQuery(id);
   const { data: assocPersonsData, isLoading: isAssocLoading } = useGetAssociatedPersonsQuery(id);
   const { data: onboardingHistory, isLoading: isHistoryLoading } = useGetCompanyOnboardingHistoryQuery(id);
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateCompanyProfileStatusMutation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<"PENDING" | "INREVIEW" | "APPROVED" | "REJECTED" | null>(null);
+
+  const handleUpdateStatus = async (status: "PENDING" | "INREVIEW" | "APPROVED" | "REJECTED") => {
+    try {
+      await updateStatus({ id, status }).unwrap();
+    } catch (err) {
+      alert("Failed to update status: " + getApiErrorMessage(err));
+    }
+  };
 
   const getStatusClass = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -166,7 +178,7 @@ export default function CorporateDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main Header Card */}
-      <div className="relative overflow-hidden bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-white/10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="relative bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-white/10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="size-16 rounded-2xl bg-[#E52629]/10 flex items-center justify-center shrink-0">
             <Building2 className="size-8 text-[#E52629]" />
@@ -176,15 +188,6 @@ export default function CorporateDetailPage({ params }: PageProps) {
               <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                 {detailedApp.businessLegalName || "Tricky Web Solutions"}
               </h1>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
-                  getStatusClass(detailedApp.kycStatus)
-                )}
-              >
-                {getKycIcon(detailedApp.kycStatus)}
-                {formatKycStatus(detailedApp.kycStatus)}
-              </span>
             </div>
             <p className="text-xs text-gray-400 font-mono mt-1">
               ID: {detailedApp.id}
@@ -192,19 +195,60 @@ export default function CorporateDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Completion Progress Bar */}
-        <div className="w-full md:w-60 space-y-2">
-          <div className="flex justify-between items-center text-xs font-bold">
-            <span className="text-gray-400 uppercase tracking-wider">Completion Status</span>
-            <span className="text-gray-900 dark:text-white">
-              {detailedApp.completionPercentage !== undefined ? `${detailedApp.completionPercentage}%` : "N/A"}
-            </span>
-          </div>
-          <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${detailedApp.completionPercentage ?? 0}%` }}
-            />
+        {/* Custom Status Dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Status:</span>
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              disabled={isUpdatingStatus}
+              className={cn(
+                "text-[11px] px-6 py-2 rounded-full font-black uppercase tracking-widest border cursor-pointer outline-none transition-all flex items-center gap-2",
+                detailedApp.status === "APPROVED"
+                  ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-green-200/50 dark:border-green-500/20"
+                  : detailedApp.status === "REJECTED"
+                  ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-red-200/50 dark:border-red-500/20"
+                  : detailedApp.status === "INREVIEW"
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20"
+                  : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20"
+              )}
+            >
+              <span>{detailedApp.status || "PENDING"}</span>
+              <ChevronDown className="size-3 text-gray-400" />
+            </button>
+
+            {isDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsDropdownOpen(false)} 
+                />
+                <div className="absolute right-0 mt-2 w-36 rounded-2xl bg-white dark:bg-[#181818] border border-gray-100 dark:border-white/10 shadow-xl py-1.5 z-[99] animate-fade-in space-y-1">
+                  {[
+                    { value: "PENDING", label: "Pending" },
+                    { value: "INREVIEW", label: "In Review" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        setPendingStatusChange(option.value as any);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <span className={cn("size-2 rounded-full", 
+                        option.value === "APPROVED" ? "bg-green-500" :
+                        option.value === "REJECTED" ? "bg-red-500" :
+                        option.value === "INREVIEW" ? "bg-blue-500" : "bg-amber-500"
+                      )} />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -595,6 +639,41 @@ export default function CorporateDetailPage({ params }: PageProps) {
 
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {pendingStatusChange && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#181818] p-6 rounded-3xl border border-gray-100 dark:border-white/10 shadow-2xl max-w-sm w-full mx-4 space-y-6 text-center animate-scale-up">
+            <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <AlertCircle className="size-6" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-black text-gray-950 dark:text-white tracking-tight">Confirm Status Change</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Are you sure you want to change the application status to <span className="font-bold text-[#E52629] dark:text-[#E52629]">{pendingStatusChange}</span>?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingStatusChange(null)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const status = pendingStatusChange;
+                  setPendingStatusChange(null);
+                  handleUpdateStatus(status);
+                }}
+                className="flex-1 py-2.5 bg-[#E52629] hover:bg-[#c41e21] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

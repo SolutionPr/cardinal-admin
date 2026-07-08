@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -18,9 +18,10 @@ import {
   CheckCircle2,
   Circle,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { useGetPersonalApplicationQuery } from "@/store/api/applicationsApi";
+import { useGetPersonalApplicationQuery, useGetPersonalOnboardingHistoryQuery, useGetKycDetailsQuery, useUpdatePersonalApplicationStatusMutation } from "@/store/api/applicationsApi";
 import { getApiErrorMessage } from "@/lib/api";
 
 interface PageProps {
@@ -33,6 +34,19 @@ export default function PersonalDetailPage({ params }: PageProps) {
 
   // Fetch details for the personal application
   const { data: detailedApp, isLoading, error } = useGetPersonalApplicationQuery(id);
+  const { data: onboardingHistory, isLoading: isHistoryLoading } = useGetPersonalOnboardingHistoryQuery(id);
+  const { data: kycDetails, isLoading: isKycLoading } = useGetKycDetailsQuery(id);
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdatePersonalApplicationStatusMutation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<"PENDING" | "INREVIEW" | "APPROVED" | "REJECTED" | null>(null);
+
+  const handleUpdateStatus = async (status: "PENDING" | "INREVIEW" | "APPROVED" | "REJECTED") => {
+    try {
+      await updateStatus({ id, status }).unwrap();
+    } catch (err) {
+      alert("Failed to update status: " + getApiErrorMessage(err));
+    }
+  };
 
   const getStatusClass = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -157,25 +171,16 @@ export default function PersonalDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main Header Card */}
-      <div className="relative overflow-hidden bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-white/10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="relative bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-white/10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="size-16 rounded-2xl bg-[#E52629]/10 flex items-center justify-center shrink-0">
             <User className="size-8 text-[#E52629]" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl font-black text-gray-950 dark:text-white tracking-tight">
                 {detailedApp.firstname} {detailedApp.lastname}
               </h1>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
-                  getStatusClass(detailedApp.kycStatus)
-                )}
-              >
-                {getKycIcon(detailedApp.kycStatus)}
-                {formatKycStatus(detailedApp.kycStatus)}
-              </span>
             </div>
             <p className="text-xs text-gray-400 font-mono mt-1">
               ID: {detailedApp.id}
@@ -183,19 +188,60 @@ export default function PersonalDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Completion Progress Bar */}
-        <div className="w-full md:w-60 space-y-2">
-          <div className="flex justify-between items-center text-xs font-bold">
-            <span className="text-gray-400 uppercase tracking-wider">Completion Status</span>
-            <span className="text-gray-900 dark:text-white">
-              {completionPercent}%
-            </span>
-          </div>
-          <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${completionPercent}%` }}
-            />
+        {/* Custom Status Dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Status:</span>
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              disabled={isUpdatingStatus}
+              className={cn(
+                "text-[11px] px-6 py-2 rounded-full font-black uppercase tracking-widest border cursor-pointer outline-none transition-all flex items-center gap-2",
+                detailedApp.status === "APPROVED"
+                  ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-green-200/50 dark:border-green-500/20"
+                  : detailedApp.status === "REJECTED"
+                  ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-red-200/50 dark:border-red-500/20"
+                  : detailedApp.status === "INREVIEW"
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20"
+                  : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20"
+              )}
+            >
+              <span>{detailedApp.status || "PENDING"}</span>
+              <ChevronDown className="size-3 text-gray-400" />
+            </button>
+
+            {isDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsDropdownOpen(false)} 
+                />
+                <div className="absolute right-0 mt-2 w-36 rounded-2xl bg-white dark:bg-[#181818] border border-gray-100 dark:border-white/10 shadow-xl py-1.5 z-[99] animate-fade-in space-y-1">
+                  {[
+                    { value: "PENDING", label: "Pending" },
+                    { value: "INREVIEW", label: "In Review" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        setPendingStatusChange(option.value as any);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <span className={cn("size-2 rounded-full", 
+                        option.value === "APPROVED" ? "bg-green-500" :
+                        option.value === "REJECTED" ? "bg-red-500" :
+                        option.value === "INREVIEW" ? "bg-blue-500" : "bg-amber-500"
+                      )} />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -269,89 +315,149 @@ export default function PersonalDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Stepper Timeline Onboarding Journey */}
+          {/* Stepper Timeline Onboarding History */}
           <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm space-y-6">
             <h2 className="text-sm font-black text-gray-950 dark:text-white uppercase tracking-widest border-b border-gray-100 dark:border-white/5 pb-3">
-              Onboarding Journey
+              Onboarding History
             </h2>
-            <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100 dark:before:bg-white/5">
-              {[
-                {
-                  title: "Contact Setup",
-                  desc: "Verified mobile number & registration country",
-                  fields: `Phone: ${detailedApp.phoneNumber || "N/A"} | Country: ${detailedApp.country?.name || "N/A"}`,
-                },
-                {
-                  title: "Personal Information & Address Registry",
-                  desc: "Full name, date of birth, and verified residential address details",
-                  fields: `Name: ${detailedApp.firstname} ${detailedApp.lastname} | DOB: ${detailedApp.dob ? new Date(detailedApp.dob).toLocaleDateString() : "N/A"}${detailedApp.homeAddress ? ` | Address: ${detailedApp.homeAddress.street} ${detailedApp.homeAddress.houseNumber}, ${detailedApp.homeAddress.city?.name || ""}` : ""}`,
-                },
-                {
-                  title: "Occupation Details",
-                  desc: "Employment category & financial profile",
-                  fields: `Occupation: ${formatOccupation(detailedApp.occupation)}`,
-                },
-                {
-                  title: "KYC Compliance Check",
-                  desc: "AML screening & identity verification status",
-                  fields: `Status: ${formatKycStatus(detailedApp.kycStatus)}`,
-                },
-              ].map((step, idx) => {
-                const stepNum = idx + 1;
-                const isCompleted = stepNum < (detailedApp.currentStep ?? 1) || (stepNum === 4 && (detailedApp.kycStatus === "VERIFIED" || detailedApp.kycStatus === "APPROVED"));
-                const isCurrent = stepNum === (detailedApp.currentStep ?? 1) && !isCompleted;
-                const isFailed = stepNum === 4 && (detailedApp.kycStatus === "FAILED" || detailedApp.kycStatus === "REJECTED");
+            {isHistoryLoading ? (
+              <div className="py-4 text-center">
+                <Loader2 className="size-5 animate-spin text-[#E52629] mx-auto" />
+              </div>
+            ) : !onboardingHistory || onboardingHistory.length === 0 ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center">No onboarding history available.</p>
+            ) : (
+              <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100 dark:before:bg-white/5">
+                {onboardingHistory.map((step, idx) => {
+                  const isCompleted = !!step.completedAt;
+                  const isActive = !isCompleted && step.step === (detailedApp.currentStep ?? 1);
 
-                return (
-                  <div key={`step-timeline-${idx}`} className="relative flex gap-4">
-                    {/* Dot / Indicator */}
-                    <div
-                      className={cn(
-                        "absolute -left-6 top-1 size-5.5 rounded-full flex items-center justify-center border-2 z-10 transition-all duration-300",
-                        isCompleted
-                          ? "bg-green-500 border-green-500 text-white"
-                          : isFailed
-                          ? "bg-red-500 border-red-500 text-white"
-                          : isCurrent
-                          ? "bg-white dark:bg-[#111111] border-[#E52629] text-[#E52629] shadow-lg shadow-[#E52629]/20"
-                          : "bg-white dark:bg-[#111111] border-gray-200 dark:border-white/10 text-gray-300 dark:text-gray-600"
-                      )}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="size-3.5" />
-                      ) : isFailed ? (
-                        <X className="size-3" />
-                      ) : isCurrent ? (
-                        <span className="size-2 rounded-full bg-[#E52629] animate-pulse" />
-                      ) : (
-                        <Circle className="size-2.5 fill-current text-gray-200 dark:text-gray-700" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h4
+                  return (
+                    <div key={`step-timeline-${idx}`} className="relative flex gap-4">
+                      {/* Dot / Indicator */}
+                      <div
                         className={cn(
-                          "text-sm font-bold tracking-tight",
+                          "absolute -left-6 top-1 size-5.5 rounded-full flex items-center justify-center border-2 z-10 transition-all duration-300",
                           isCompleted
-                            ? "text-gray-900 dark:text-white"
-                            : isCurrent
-                            ? "text-[#E52629]"
-                            : "text-gray-400 dark:text-gray-500"
+                            ? "bg-green-500 border-green-500 text-white"
+                            : isActive
+                            ? "bg-white dark:bg-[#111111] border-[#E52629] text-[#E52629] shadow-lg shadow-[#E52629]/20"
+                            : "bg-white dark:bg-[#111111] border-gray-200 dark:border-white/10 text-gray-300 dark:text-gray-600"
                         )}
                       >
-                        {step.title}
-                      </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        {step.desc}
+                        {isCompleted ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : isActive ? (
+                          <span className="size-2 rounded-full bg-[#E52629] animate-pulse" />
+                        ) : (
+                          <Circle className="size-2.5 fill-current text-gray-200 dark:text-gray-700" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4
+                          className={cn(
+                            "text-sm font-bold tracking-tight",
+                            isCompleted
+                              ? "text-gray-900 dark:text-white"
+                              : isActive
+                              ? "text-[#E52629]"
+                              : "text-gray-400 dark:text-gray-500"
+                          )}
+                        >
+                          {step.title}
+                        </h4>
+                        {step.completedAt && (
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-mono font-bold bg-gray-50 dark:bg-white/[0.01] px-2 py-1 rounded border border-gray-100/50 dark:border-white/5 truncate">
+                            Completed: {new Date(step.completedAt).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* KYC Verification Details Card */}
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-white/5 pb-3">
+              <h2 className="text-sm font-black text-gray-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                <ShieldCheck className="size-4 text-green-500" />
+                <span>KYC Verification Details</span>
+              </h2>
+              <span className={cn(
+                "text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider",
+                getStatusClass(detailedApp.kycStatus)
+              )}>
+                {formatKycStatus(detailedApp.kycStatus)}
+              </span>
+            </div>
+
+            {isKycLoading ? (
+              <div className="py-4 text-center">
+                <Loader2 className="size-5 animate-spin text-[#E52629] mx-auto" />
+              </div>
+            ) : !kycDetails || !kycDetails.fullName ? (
+              <div className="py-6 text-center space-y-2">
+                <ShieldQuestion className="size-8 text-amber-500 mx-auto animate-pulse" />
+                <p className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  KYC Verification Pending
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                  This user has not completed the identity verification process yet.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                {kycDetails.portraitImageUrl && (
+                  <div className="relative size-24 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shrink-0 bg-gray-50 dark:bg-white/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={kycDetails.portraitImageUrl}
+                      alt="KYC Portrait"
+                      className="size-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 w-full space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Verified Full Name</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                        {kycDetails.fullName || "N/A"}
                       </p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-mono font-bold bg-gray-50 dark:bg-white/[0.01] px-2 py-1 rounded border border-gray-100/50 dark:border-white/5 truncate">
-                        {step.fields}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Date of Birth</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                        {kycDetails.dateOfBirth
+                          ? new Date(kycDetails.dateOfBirth).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Issuing State</span>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white mt-0.5 font-mono uppercase bg-gray-50 dark:bg-white/5 px-2 py-1 rounded inline-block">
+                        {kycDetails.issuingState || "N/A"}
                       </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
@@ -437,6 +543,41 @@ export default function PersonalDetailPage({ params }: PageProps) {
 
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {pendingStatusChange && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#181818] p-6 rounded-3xl border border-gray-100 dark:border-white/10 shadow-2xl max-w-sm w-full mx-4 space-y-6 text-center animate-scale-up">
+            <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <AlertCircle className="size-6" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-black text-gray-950 dark:text-white tracking-tight">Confirm Status Change</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Are you sure you want to change the application status to <span className="font-bold text-[#E52629] dark:text-[#E52629]">{pendingStatusChange}</span>?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingStatusChange(null)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const status = pendingStatusChange;
+                  setPendingStatusChange(null);
+                  handleUpdateStatus(status);
+                }}
+                className="flex-1 py-2.5 bg-[#E52629] hover:bg-[#c41e21] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
