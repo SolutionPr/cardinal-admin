@@ -38,6 +38,7 @@ export const crmNavigation: NavItem[] = [
       { label: "Cities", href: "/dashboard/master-data/cities" },
       { label: "Business Types", href: "/dashboard/master-data/business-types" },
       { label: "Legal Entities", href: "/dashboard/master-data/legal-entities" },
+      { label: "Pricing Plans", href: "/dashboard/master-data/plans" },
     ],
   },
   {

@@ -36,11 +36,20 @@ import {
   type LegalEntitiesResponse,
   type LegalEntityMutationResponse,
 } from "@/services/legal-entity.service";
+import {
+  normalizePlansResponse,
+  normalizePlanUpdateResponse,
+  type PricingPlan,
+  type PlansResponse,
+  type UpdatePlanInput,
+  type PlanUpdateResponse,
+} from "@/services/plans.service";
 import { baseApi } from "./baseApi";
 
 const countriesTag = [{ type: "Countries" as const, id: "LIST" }];
 const citiesTag = [{ type: "Cities" as const, id: "LIST" }];
 const businessTypesTag = [{ type: "BusinessTypes" as const, id: "LIST" }];
+const plansTag = [{ type: "Plans" as const, id: "LIST" }];
 
 export const masterDataApi = baseApi.injectEndpoints({
   overrideExisting: true,
@@ -153,7 +162,7 @@ export const masterDataApi = baseApi.injectEndpoints({
     }),
     getCountryBusinessTypes: builder.query<SupportedBusinessType[], string>({
       query: (countryCode) =>
-        `/admin/country/${encodeURIComponent(countryCode)}/business-types`,
+          `/admin/country/${encodeURIComponent(countryCode)}/business-types`,
       transformResponse: (response: BusinessTypesResponse) =>
         normalizeSupportedBusinessTypesResponse(response),
       transformErrorResponse: (response: unknown) =>
@@ -238,6 +247,26 @@ export const masterDataApi = baseApi.injectEndpoints({
         resolveApiMessage(response) ?? "Unable to delete legal entity.",
       invalidatesTags: [{ type: "LegalEntities" as const }],
     }),
+    getPlans: builder.query<PricingPlan[], void>({
+      query: () => "/admin/plans",
+      transformResponse: (response: PlansResponse) =>
+        normalizePlansResponse(response),
+      transformErrorResponse: (response: unknown) =>
+        resolveApiMessage(response) ?? "Unable to load pricing plans.",
+      providesTags: plansTag,
+    }),
+    updatePlan: builder.mutation<PricingPlan, { id: string; body: UpdatePlanInput }>({
+      query: ({ id, body }) => ({
+        url: `/admin/plan/${encodeURIComponent(id)}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: PlanUpdateResponse) =>
+        normalizePlanUpdateResponse(response),
+      transformErrorResponse: (response: unknown) =>
+        resolveApiMessage(response) ?? "Unable to update pricing plan.",
+      invalidatesTags: plansTag,
+    }),
   }),
 });
 
@@ -257,4 +286,6 @@ export const {
   useGetLegalEntitiesQuery,
   useCreateLegalEntityMutation,
   useDeleteLegalEntityMutation,
+  useGetPlansQuery,
+  useUpdatePlanMutation,
 } = masterDataApi;
