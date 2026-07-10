@@ -7,6 +7,7 @@ import {
   BarChart3,
   Settings,
   FileText,
+  Globe,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -63,6 +64,11 @@ export const crmNavigation: NavItem[] = [
     icon: BarChart3,
     label: "Reports",
     href: "/dashboard/reports",
+  },
+  {
+    icon: Globe,
+    label: "Landing CMS",
+    href: "/dashboard/landing-cms",
   },
   {
     icon: Settings,
