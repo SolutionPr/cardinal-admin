@@ -231,7 +231,19 @@ export function normalizeCitiesPageResponse(
 ): CitiesPageResult {
   const page = params.page ?? 1;
   const limit = params.limit ?? 10;
-  const cities = normalizeCitiesResponse(response);
+  let cities = normalizeCitiesResponse(response);
+
+  // If a search query is provided, we filter the cities locally and paginate locally.
+  if (params.search?.trim()) {
+    const q = params.search.trim().toLowerCase();
+    cities = cities.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.stateCode?.toLowerCase().includes(q)
+    );
+    return paginateItems(cities, page, limit);
+  }
+
   const fallbackPagination = buildPaginationMeta(page, limit, cities.length);
   const pagination = extractPaginationMeta(response, fallbackPagination);
 

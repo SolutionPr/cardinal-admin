@@ -17,6 +17,7 @@ import { CityFormModal } from "@/components/master-data/CityFormModal";
 import { CityRowActions } from "@/components/master-data/CityRowActions";
 import { DeleteCityDialog } from "@/components/master-data/DeleteCityDialog";
 import { TablePagination } from "@/components/ui/TablePagination";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { City } from "@/services/city.service";
 import {
   useDeleteCityMutation,
@@ -46,6 +47,14 @@ export default function CitiesPage() {
     () => countriesData ?? [],
     [countriesData],
   );
+
+  const selectCountryOptions = useMemo(() => {
+    return countryOptions.map((c) => ({
+      value: c.code ?? c.id,
+      label: c.name,
+      subLabel: c.code ? `(${c.code})` : undefined,
+    }));
+  }, [countryOptions]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -194,57 +203,21 @@ export default function CitiesPage() {
       </div>
 
       <div className="bg-white dark:bg-[#111111] rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm p-5 sm:p-6">
-        <div className="grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
-          <div className="space-y-2">
-            <label
-              htmlFor="city-country"
-              className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-            >
-              Country
-            </label>
-            <select
-              id="city-country"
-              value={selectedCountry}
-              disabled={isCountriesLoading || countryOptions.length === 0}
-              onChange={(event) => handleCountryChange(event.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {countryOptions.length === 0 ? (
-                <option value="">No countries available</option>
-              ) : (
-                countryOptions.map((country) => {
-                  const value = country.code ?? country.id;
-                  return (
-                    <option key={country.id} value={value}>
-                      {country.name}
-                      {country.code ? ` (${country.code})` : ""}
-                    </option>
-                  );
-                })
-              )}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label
-              htmlFor="city-search"
-              className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-            >
-              Search
-            </label>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-              <input
-                id="city-search"
-                type="text"
-                value={searchInput}
-                disabled={!selectedCountry}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search cities..."
-                className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all disabled:opacity-60"
-              />
-            </div>
-          </div>
+        <div className="space-y-2 max-w-md">
+          <label
+            htmlFor="city-country"
+            className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+          >
+            Country
+          </label>
+          <CustomSelect
+            id="city-country"
+            value={selectedCountry}
+            disabled={isCountriesLoading || countryOptions.length === 0}
+            onChange={handleCountryChange}
+            options={selectCountryOptions}
+            placeholder="Select a country"
+          />
         </div>
       </div>
 
@@ -256,6 +229,31 @@ export default function CitiesPage() {
       )}
 
       <div className="bg-white dark:bg-[#111111] rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        {selectedCountry && (
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Showing cities for{" "}
+                <span className="text-gray-900 dark:text-white">
+                  {selectedCountryLabel}
+                </span>
+              </p>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+              <input
+                id="city-search"
+                type="text"
+                value={searchInput}
+                disabled={!selectedCountry}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search cities..."
+                className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all disabled:opacity-60"
+              />
+            </div>
+          </div>
+        )}
+
         {!selectedCountry ? (
           <div className="py-20 px-6 text-center">
             <MapPin className="size-10 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -294,14 +292,6 @@ export default function CitiesPage() {
           </div>
         ) : (
           <>
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
-              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Showing cities for{" "}
-                <span className="text-gray-900 dark:text-white">
-                  {selectedCountryLabel}
-                </span>
-              </p>
-            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[480px]">

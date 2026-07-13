@@ -242,11 +242,11 @@ export default function PlansPage() {
                   </h4>
                   <ul className="space-y-2.5">
                     {plan.features.map((feat) => (
-                      <li key={feat.id} className="flex justify-between text-sm">
-                        <span className="text-gray-500 dark:text-gray-400 font-medium">
+                      <li key={feat.id} className="flex justify-between items-start gap-4 text-sm py-0.5">
+                        <span className="text-gray-500 dark:text-gray-400 font-medium text-left leading-tight">
                           {feat.name}
                         </span>
-                        <span className="font-bold text-gray-900 dark:text-white">
+                        <span className="font-bold text-gray-900 dark:text-white text-right leading-tight break-words">
                           {feat.value}
                         </span>
                       </li>

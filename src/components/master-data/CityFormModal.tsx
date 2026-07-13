@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/api";
 import { UpdateRecordConfirmDialog } from "@/components/ui/UpdateRecordConfirmDialog";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import {
   cityToFormValues,
   toCityPayload,
@@ -58,6 +59,14 @@ export function CityFormModal({
 
   const isBusy = isCreating || isUpdating;
   const isEdit = mode === "edit";
+
+  const selectCountryOptions = useMemo(() => {
+    return countryOptions.map((c) => ({
+      value: c.code ?? c.id,
+      label: c.name,
+      subLabel: c.code ? `(${c.code})` : undefined,
+    }));
+  }, [countryOptions]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -212,25 +221,14 @@ export function CityFormModal({
                   >
                     Country
                   </label>
-                  <select
+                  <CustomSelect
                     id="city-country-select"
                     value={form.countryIdOrCode}
                     disabled={isBusy}
-                    onChange={(event) =>
-                      updateField("countryIdOrCode", event.target.value)
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all cursor-pointer disabled:opacity-60"
-                  >
-                    {countryOptions.map((country) => {
-                      const value = country.code ?? country.id;
-                      return (
-                        <option key={country.id} value={value}>
-                          {country.name}
-                          {country.code ? ` (${country.code})` : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    onChange={(val) => updateField("countryIdOrCode", val)}
+                    options={selectCountryOptions}
+                    placeholder="Select a country"
+                  />
                 </div>
 
                 <div className="space-y-2">

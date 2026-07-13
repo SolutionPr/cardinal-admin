@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Search,
   X,
 } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/api";
@@ -77,12 +78,29 @@ export default function CountriesPage() {
     refetch,
   } = useGetCountriesQuery();
 
+  const [searchVal, setSearchVal] = useState("");
   const [deleteCountry, { isLoading: isDeleting }] = useDeleteCountryMutation();
 
+  const filteredCountries = useMemo(() => {
+    if (!searchVal.trim()) return allCountries;
+    const q = searchVal.trim().toLowerCase();
+    return allCountries.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code?.toLowerCase().includes(q) ||
+        c.phonePrefix?.toLowerCase().includes(q)
+    );
+  }, [allCountries, searchVal]);
+
   const { items: countries, pagination } = useMemo(
-    () => paginateItems(allCountries, page, limit),
-    [allCountries, page, limit],
+    () => paginateItems(filteredCountries, page, limit),
+    [filteredCountries, page, limit],
   );
+
+  const handleSearchChange = (val: string) => {
+    setSearchVal(val);
+    setPage(1);
+  };
   const errorMessage = error ? getApiErrorMessage(error) : null;
 
   const handlePageChange = (nextPage: number) => {
@@ -188,6 +206,25 @@ export default function CountriesPage() {
       )}
 
       <div className="bg-white dark:bg-[#111111] rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.01] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {filteredCountries.length} registered countr{filteredCountries.length === 1 ? "y" : "ies"}
+            </p>
+          </div>
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <input
+              id="country-search"
+              type="text"
+              value={searchVal}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="Search countries..."
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all"
+            />
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="size-8 text-[#E52629] animate-spin" />
@@ -209,6 +246,16 @@ export default function CountriesPage() {
               <Plus className="size-4" />
               Add country
             </button>
+          </div>
+        ) : countries.length === 0 ? (
+          <div className="py-20 px-6 text-center">
+            <Search className="size-10 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
+              No matching countries found
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+              No country matches "{searchVal}". Try checking your spelling or search query.
+            </p>
           </div>
         ) : (
           <>

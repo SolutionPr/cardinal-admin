@@ -72,6 +72,27 @@ export default function DashboardLayout({
   );
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+  const [notificationsList, setNotificationsList] = useState([
+    {
+      id: 1,
+      color: "bg-green-500",
+      text: "New contact assigned: Sarah Chen from Acme Corp",
+      time: "30 min ago",
+    },
+    {
+      id: 2,
+      color: "bg-blue-500",
+      text: "Deal closed: Enterprise Plan — €24,000",
+      time: "2 hours ago",
+    },
+    {
+      id: 3,
+      color: "bg-amber-500",
+      text: "Task due: Follow up with 3 warm leads",
+      time: "Today",
+    },
+  ]);
 
   const pathname = usePathname();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -316,9 +337,11 @@ export default function DashboardLayout({
                   className={`p-2 rounded-xl relative transition-colors cursor-pointer ${isDark ? "hover:bg-white/5 text-gray-400 hover:text-white" : "hover:bg-gray-50 text-gray-500"}`}
                 >
                   <Bell className="size-5" />
-                  <span
-                    className={`absolute top-2 right-2 size-2 bg-[#E52629] border-2 rounded-full ${isDark ? "border-[#0A0909]" : "border-white"}`}
-                  />
+                  {hasUnreadNotifications && (
+                    <span
+                      className={`absolute top-2 right-2 size-2 bg-[#E52629] border-2 rounded-full ${isDark ? "border-[#0A0909]" : "border-white"}`}
+                    />
+                  )}
                 </button>
 
                 {isNotificationsOpen && (
@@ -327,45 +350,41 @@ export default function DashboardLayout({
                       <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider font-heading">
                         Notifications
                       </span>
-                      <span className="text-[10px] text-[#E52629] font-bold cursor-pointer hover:underline">
+                      <span
+                        onClick={() => {
+                          setNotificationsList([]);
+                          setHasUnreadNotifications(false);
+                        }}
+                        className="text-[10px] text-[#E52629] font-bold cursor-pointer hover:underline"
+                      >
                         Clear all
                       </span>
                     </div>
                     <div className="divide-y divide-gray-50 dark:divide-white/5 max-h-64 overflow-y-auto no-scrollbar">
-                      {[
-                        {
-                          color: "bg-green-500",
-                          text: "New contact assigned: Sarah Chen from Acme Corp",
-                          time: "30 min ago",
-                        },
-                        {
-                          color: "bg-blue-500",
-                          text: "Deal closed: Enterprise Plan — €24,000",
-                          time: "2 hours ago",
-                        },
-                        {
-                          color: "bg-amber-500",
-                          text: "Task due: Follow up with 3 warm leads",
-                          time: "Today",
-                        },
-                      ].map((n) => (
-                        <div
-                          key={n.text}
-                          className="p-3 px-4 hover:bg-red-50/10 dark:hover:bg-white/[0.02] transition-colors flex items-start gap-2.5 cursor-pointer"
-                        >
-                          <div
-                            className={`size-2 rounded-full ${n.color} mt-1.5 shrink-0`}
-                          />
-                          <div>
-                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug">
-                              {n.text}
-                            </p>
-                            <span className="text-[10px] text-gray-400 font-medium block mt-0.5">
-                              {n.time}
-                            </span>
-                          </div>
+                      {notificationsList.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-gray-500 dark:text-gray-400 font-medium">
+                          No notifications
                         </div>
-                      ))}
+                      ) : (
+                        notificationsList.map((n) => (
+                          <div
+                            key={n.id}
+                            className="p-3 px-4 hover:bg-red-50/10 dark:hover:bg-white/[0.02] transition-colors flex items-start gap-2.5 cursor-pointer"
+                          >
+                            <div
+                              className={`size-2 rounded-full ${n.color} mt-1.5 shrink-0`}
+                            />
+                            <div>
+                              <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug">
+                                {n.text}
+                              </p>
+                              <span className="text-[10px] text-gray-400 font-medium block mt-0.5">
+                                {n.time}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}

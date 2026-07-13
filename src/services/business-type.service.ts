@@ -128,6 +128,15 @@ function normalizeSupportedBusinessType(
         ? (record.business_type as BusinessTypeRaw & Record<string, unknown>)
         : null;
 
+  const hasSupportedIdAtRoot = Boolean(
+    record.supportedTypeId ||
+    record.supported_type_id ||
+    record.supportedBusinessTypeId ||
+    record.supported_business_type_id ||
+    record.countryBusinessTypeId ||
+    record.country_business_type_id
+  );
+
   const supportedBusinessTypeId =
     pickString(record, [
       "supportedTypeId",
@@ -145,6 +154,7 @@ function normalizeSupportedBusinessType(
     (nested
       ? pickString(nested, ["id", "_id", "businessTypeId", "business_type_id"])
       : undefined) ??
+    (hasSupportedIdAtRoot ? pickString(record, ["id", "_id"]) : undefined) ??
     supportedBusinessTypeId;
 
   const name =

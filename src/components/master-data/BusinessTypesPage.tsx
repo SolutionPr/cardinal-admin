@@ -18,6 +18,7 @@ import {
   BusinessTypeActionDialog,
   type PendingBusinessTypeAction,
 } from "@/components/master-data/BusinessTypeActionDialog";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import {
   useAttachBusinessTypeToCountryMutation,
   useDetachBusinessTypeFromCountryMutation,
@@ -51,6 +52,14 @@ export default function BusinessTypesPage() {
     useDetachBusinessTypeFromCountryMutation();
 
   const countryOptions = useMemo(() => countries, [countries]);
+
+  const selectCountryOptions = useMemo(() => {
+    return countryOptions.map((c) => ({
+      value: c.id,
+      label: c.name,
+      subLabel: c.code ? `(${c.code})` : undefined,
+    }));
+  }, [countryOptions]);
 
   const selectedCountry = countryOptions.find(
     (country) => country.id === selectedCountryId,
@@ -215,24 +224,14 @@ export default function BusinessTypesPage() {
           >
             Country
           </label>
-          <select
+          <CustomSelect
             id="business-type-country"
             value={selectedCountryId}
             disabled={isCountriesLoading || countryOptions.length === 0}
-            onChange={(event) => setSelectedCountryId(event.target.value)}
-            className="w-full px-4 py-3 bg-gray-50 dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-[#E52629] focus:ring-2 focus:ring-[#E52629]/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {countryOptions.length === 0 ? (
-              <option value="">No countries available</option>
-            ) : (
-              countryOptions.map((country) => (
-                <option key={country.id} value={country.id}>
-                  {country.name}
-                  {country.code ? ` (${country.code})` : ""}
-                </option>
-              ))
-            )}
-          </select>
+            onChange={setSelectedCountryId}
+            options={selectCountryOptions}
+            placeholder="Select a country"
+          />
           <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
             Attach or detach business types for the selected country.
           </p>
