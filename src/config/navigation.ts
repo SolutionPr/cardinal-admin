@@ -32,6 +32,11 @@ export const crmNavigation: NavItem[] = [
     href: "/dashboard",
   },
   {
+    icon: Globe,
+    label: "Content Management",
+    href: "/dashboard/content-management",
+  },
+  {
     icon: Database,
     label: "Master Data",
     subItems: [
@@ -64,11 +69,6 @@ export const crmNavigation: NavItem[] = [
     icon: BarChart3,
     label: "Reports",
     href: "/dashboard/reports",
-  },
-  {
-    icon: Globe,
-    label: "Landing CMS",
-    href: "/dashboard/landing-cms",
   },
   {
     icon: Settings,

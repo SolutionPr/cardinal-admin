@@ -211,7 +211,8 @@ export default function LandingCMSPage() {
     .filter((group) => group.routes.length > 0);
 
   const baseUrl = "https://fintech.elyriasoft.com";
-  const previewUrl = `${baseUrl}${selectedRoute}${
+  const previewUrl = `${baseUrl}${selectedRoute}`;
+  const editUrl = `${baseUrl}${selectedRoute}${
     cmsToken ? `?cms_token=${encodeURIComponent(cmsToken)}` : ""
   }`;
 
@@ -363,12 +364,12 @@ export default function LandingCMSPage() {
             </button>
 
             <a
-              href={previewUrl}
+              href={editUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#e52629] text-white hover:bg-[#c41e3a] rounded-xl shadow-sm shadow-primary/10 transition-colors"
             >
-              Full Screen <ExternalLink className="size-3.5" />
+              Edit Content <ExternalLink className="size-3.5" />
             </a>
           </div>
         </div>
@@ -379,7 +380,7 @@ export default function LandingCMSPage() {
             key={iframeKey}
             src={previewUrl}
             className="w-full h-full border-0 bg-white dark:bg-[#111111]"
-            title="Website Live CMS Preview"
+            title="Content Management Preview"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
