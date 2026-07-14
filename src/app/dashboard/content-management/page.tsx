@@ -158,7 +158,22 @@ export default function LandingCMSPage() {
         }
         cleanPath = cleanPath.split("?")[0].split("#")[0];
         const formattedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
-        setSelectedRoute(formattedPath);
+        
+        setSelectedRoute((prev) => {
+          const normalizedPrev = prev.replace(/\/+$/, "") || "/";
+          const normalizedNext = formattedPath.replace(/\/+$/, "") || "/";
+          
+          console.log("Prev path:", prev, "Normalized:", normalizedPrev);
+          console.log("Next path:", formattedPath, "Normalized:", normalizedNext);
+          
+          if (normalizedPrev === normalizedNext) {
+            console.log("No state update needed (paths match under normalization)");
+            return prev;
+          }
+          
+          console.log("State updated to:", formattedPath);
+          return formattedPath;
+        });
       }
     };
 
