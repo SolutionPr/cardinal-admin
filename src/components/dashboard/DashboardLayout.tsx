@@ -52,8 +52,32 @@ function BrandLogo({ collapsed }: { collapsed: boolean }) {
 }
 
 function pageTitleFromPath(pathname: string): string {
-  const segment = pathname.split("/").filter(Boolean).pop();
-  if (!segment || segment === "dashboard") return "Dashboard";
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return "Dashboard";
+
+  // Check if this path matches corporate application details
+  if (segments[1] === "applications" && segments[2] === "corporate") {
+    if (segments[4] === "associated-person") {
+      return "Associated Person Details";
+    }
+    if (segments[3]) {
+      return "Corporate Application Details";
+    }
+  }
+
+  // Check if this path matches personal application details
+  if (segments[1] === "applications" && segments[2] === "personal") {
+    if (segments[3]) {
+      return "Personal Application Details";
+    }
+  }
+
+  const segment = segments[segments.length - 1];
+  if (segment === "dashboard") return "Dashboard";
+  
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+  if (isUuid) return "Details";
+
   return segment.replace(/-/g, " ");
 }
 
