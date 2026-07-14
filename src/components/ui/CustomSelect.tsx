@@ -116,11 +116,15 @@ export function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
-            className="absolute z-50 w-full mt-2 bg-white dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+            className="absolute z-50 w-full mt-2 border border-gray-100 dark:border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+            style={{ backgroundColor: "var(--card)" }}
           >
             {/* Search Input in Dropdown */}
             {options.length > 5 && (
-              <div className="p-2 border-b border-gray-100 dark:border-white/5 sticky top-0 bg-white dark:bg-[#151515] z-10">
+              <div 
+                className="p-2 border-b border-gray-100 dark:border-white/5 sticky top-0 z-10"
+                style={{ backgroundColor: "var(--card)" }}
+              >
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
                   <input

@@ -122,12 +122,11 @@ export default function LandingCMSPage() {
 
   // Load token from localStorage on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("cardinal_cms_token");
-    if (savedToken) {
-      setCmsToken(savedToken);
+    const adminToken = localStorage.getItem("cardinal_crm_token");
+    if (adminToken) {
+      setCmsToken(adminToken);
     } else {
-      // Set a default token if not present to make it easy for user
-      setCmsToken("your-token");
+      setCmsToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZDk3MzJiOS1iMTA5LTQ1ZGEtYTk1Zi1mYThhOWMwZjgwODciLCJlbWFpbCI6ImFkbWluQGZpbnRlY2guY29tIiwiZGV2aWNlSWQiOiI4MDFmZmNjMi0wZGU5LTRiZmMtOGEyOS0wMjdmNzE5NTk3ZjUiLCJpYXQiOjE3ODQwMDU0OTksImV4cCI6MTc4NDYxMDI5OX0.m6GTTNntZUNPXU4k4ueaC3QRvu43eE9Yq9jABKQs128");
     }
   }, []);
 
